@@ -138,17 +138,7 @@ def main():
 	# log all errors
 	dp.add_error_handler(error)
 
-	# Start the Bot
-	#updater.start_polling()
-
-	# Run the bot until the you presses Ctrl-C or the process receives SIGINT,
-	# SIGTERM or SIGABRT. This should be used most of the time, since
-	# start_polling() is non-blocking and will stop the bot gracefully.
-	#updater.idle()
-	
 	updater.start_webhook(listen='127.0.0.1', port=5001, url_path=config.token)
-	#updater.bot.setWebhook(url='https://strukkk.tk/'+config.token, certificate=open('/etc/letsencrypt/live/www.strukkk.tk/cert.pem', 'rb'))
-
 
 if __name__ == '__main__':
 	main()
