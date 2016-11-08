@@ -3,7 +3,7 @@
 
 import os
 import telegram
-import config, solar, conversation, weather
+import config, solar, conversation
 import pyowm
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHandler, Filters
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def getWeather(lat, lon):
-	weather_api = weather.weather_api
+	weather_api = config.weather_api
 	owm = pyowm.OWM(weather_api)
 	observation_list = owm.weather_around_coords(lat, lon)
 	observation = observation_list[0]
@@ -36,7 +36,7 @@ def getWeather(lat, lon):
 	
 def log_conversation(chat,user,message):
 	line = chat + '::' + user + '::' + message + "\n"
-	f = open('test.log','a')
+	f = open('/var/log/spisok_bot.log','a')
 	f.write(line)
 	f.close()
 
