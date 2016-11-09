@@ -188,6 +188,7 @@ def main():
 	dp.add_handler(CommandHandler("help", help))
 	dp.add_handler(CommandHandler("dt", dt))
 	dp.add_handler(CommandHandler("stop", stop))
+	dp.add_handler(CommandHandler("kiev_radar", kiev_radar))
 	dp.add_handler(conv_handler)
 
 	# on noncommand i.e message - echo the message on Telegram
