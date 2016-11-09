@@ -8,13 +8,10 @@ import pyowm
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHandler, Filters
 import random
-import requests
-import shutil
 
 
 from PIL import Image
 import numpy as np
-
 import urllib
 
 
