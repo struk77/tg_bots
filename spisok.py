@@ -3,16 +3,13 @@
 
 import os
 import telegram
-import config, solar, conversation
+import config, solar, conversation, uksus
 import pyowm
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHandler, Filters
+import random
 
 LOCATION = 0
-ECHO = 0
-USER = ''
-
-magic_name_dict = config.magic_name_dict
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -39,6 +36,9 @@ def log_conversation(chat,user,message):
 	f = open('/var/log/spisok_bot.log','a')
 	f.write(line)
 	f.close()
+	
+def global_echo(echo, user):
+	return echo
 
 def start(bot, update):
 	update.message.reply_text('Hi!')
@@ -79,18 +79,30 @@ def skip_location(bot, update):
 	return ConversationHandler.END
 
 def echo(bot, update):
+
 	chat = str(update.message.chat.id)
-	#logger.info(chat)
 	user = str(update.message.from_user.id)
 	message = update.message.text
+
 	log_conversation(chat,user,message)
-	if USER == user:
-		ECHO+=1
-		if ECHO > random.choice([2,3]):
-			text = conversation.get_sentence(-1)
-			update.message.reply_text(text)
+	
+	if chat not in config.CHAT_USER:
+		config.CHAT_USER[chat] = user
+		config.USER_ECHO[user] = 0
 	else:
-		ECHO = 0
+		if config.CHAT_USER[chat] == user:
+			config.USER_ECHO[user] += 1
+			if config.USER_ECHO[user] > random.choice([1,2]):
+				if random.choice([True,False]):
+					text = conversation.get_sentence(-1)
+				else:
+					username = uksus.get_name(user)
+					text = uksus.get_phrase(username)
+				update.message.reply_text(text)
+		else:
+			config.USER_ECHO[user] = 0
+			config.CHAT_USER[chat] = user
+	#logger.info(chat + " " + user + " " + config.CHAT_USER[chat])
 	
 def cancel(bot, update):
 	user = update.message.from_user
