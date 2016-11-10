@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -8,6 +8,12 @@ import pyowm
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHandler, Filters
 import random
+
+
+from PIL import Image
+import numpy as np
+import urllib
+
 
 LOCATION = 0
 
@@ -120,6 +126,46 @@ def stop(bot, update):
 	pid = os.getpid()
 	#os.kill(pid,1)
 
+def radar_kiev(bot, update):
+
+    # send typing...
+    bot.sendChatAction(action=telegram.ChatAction.TYPING,chat_id=update.message.chat_id)
+
+    pngfile="/tmp/UKBB_latest.png"
+    pngtransfile="/tmp/UKBB_transparent.png"
+    output="/tmp/output.png"
+    mapfile="map.png"
+
+    # get radar black-white png
+    urllib.urlretrieve("http://meteoinfo.by/radar/UKBB/UKBB_latest.png", pngfile)
+
+    orig_color = (204,204,204,255)
+    replacement_color = (255,255,255,0)
+    img = Image.open(pngfile).convert('RGBA')
+    data = np.array(img)
+
+    # replace gray colors with transparent
+    colors=[204,192]
+
+    for color in colors:
+      orig_color = (color,color,color,255)
+      data[(data == orig_color).all(axis = -1)] = replacement_color
+
+    img2 = Image.fromarray(data, mode='RGBA')
+    img2.save(pngtransfile)
+
+    background = Image.open(mapfile).convert('RGBA')
+    foreground = Image.open(pngtransfile)
+
+    # merge map with radar png
+    background.paste(foreground,(3,10),foreground)
+    background.save(output)
+
+    # send it as answer
+    with open(output,'r') as photo_file:
+          update.message.reply_photo(photo_file)
+
+
 def main():
 	# Create the EventHandler and pass it your bot's token.
 	updater = Updater(config.token)
@@ -142,6 +188,7 @@ def main():
 	dp.add_handler(CommandHandler("help", help))
 	dp.add_handler(CommandHandler("dt", dt))
 	dp.add_handler(CommandHandler("stop", stop))
+	dp.add_handler(CommandHandler("kiev_radar", kiev_radar))
 	dp.add_handler(conv_handler)
 
 	# on noncommand i.e message - echo the message on Telegram
