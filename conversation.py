@@ -6,6 +6,7 @@ import numpy as np
 from scipy import spatial 
 import copy
 import logging
+import pymysql
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -13,25 +14,9 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-def get_sentence(last):
-	f = open('/var/log/spisok_bot.log','r')
-	data_list = list(f)
-	f.close()
-	
-	# Создаём список всех сообщений. Объединяем многострочные сообщения в одно.
-	bd_list = []
-	for s in data_list:
-		s = re.split('::', s)
-		if len(s) < 3:
-			str = bd_list[-1]
-			bd_list[-1] = str + s[0]
-		else:
-			if s[0][0] == "-" and s[0][1][0] != 'U':
-				bd_list.append(s[2])
-	
-	# Создаём словарь всех уникальных слов в нижнем регистре
+def get_matrix_full(bd_list):
 	word_dict = {}
-	index = 0
+	index = 0 # Создаём словарь всех уникальных слов в нижнем регистре
 	for row in bd_list:
 		words = re.split('\W+',row, flags=re.U)
 		# Берём только слова длиннее 2 букв
@@ -44,8 +29,8 @@ def get_sentence(last):
 
 	rows = len(bd_list)
 	cols = len(word_dict.values())
-	my_matrix = np.zeros((rows,cols))
 
+	my_matrix = np.zeros((rows,cols))
 	line = 0
 	for row in bd_list:
 		sentence = row.lower()
@@ -55,7 +40,30 @@ def get_sentence(last):
 			idx = word_dict[word]
 			my_matrix[(line,idx)] += 1
 		line += 1
+	return my_matrix
 	
+def get_matrix_3():
+	pass
+
+def get_sentence(last):
+
+	db = pymysql.connect(host="localhost", user="spisok", passwd="spisok", db="spisok", charset='utf8')
+	cursor = db.cursor()
+	
+	# Выбираем уникальные фразы из лога
+	cursor.execute("SELECT DISTINCT message FROM conversation")
+	
+	# Загоняем их в массив
+	bd_list = []
+	for row in cursor:
+		result = cursor.fetchone()
+		#print(result[0])
+		if result != None:
+			bd_list.append(result[0])
+	db.close()
+	
+	my_matrix = get_matrix_full(bd_list)
+		
 	cos_list = []
 	for row in my_matrix:
 		cos_dist = spatial.distance.cosine(my_matrix[last],row)
@@ -66,6 +74,4 @@ def get_sentence(last):
 	min2 = cos_list_2[2]
 	index1 = cos_list.index(min1)
 	index2 = cos_list.index(min2)
-	#logger.info(bd_list[-1])
-	#logger.info(bd_list[index1+1])
 	return (bd_list[index1])
