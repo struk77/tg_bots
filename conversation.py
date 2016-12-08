@@ -88,7 +88,7 @@ def write_log(text1,text2="",text3=""):
 
 def get_sentence(last):
 
-	db = pymysql.connect(host="localhost", user="spisok", passwd="spisok", db="spisok", charset='utf8')
+	db = pymysql.connect(host="localhost", user=USERNAME, passwd=PASSWORD, db=DATABASE, charset='utf8')
 	cursor = db.cursor()
 	
 	# Выбираем уникальные фразы из лога
