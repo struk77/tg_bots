@@ -13,6 +13,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHa
 import random
 import datetime
 import threading,time
+import re
 
 
 from PIL import Image
@@ -99,6 +100,14 @@ def status_auto(bot, update):
 		
 def dt(bot, update):
 	user = update.message.from_user
+	chat_id = update.message.chat.id
+	logger.info("User %s wants to know the price of fuel." % user.first_name)
+	keyboard = [[InlineKeyboardButton("A95", callback_data='A95'),
+			InlineKeyboardButton("Diesel", callback_data='diesel')]]
+	reply_markup = InlineKeyboardMarkup(keyboard)
+	update.message.reply_text('Price of which type of fuel you wanna know?', reply_markup=reply_markup)
+	"""
+	user = update.message.from_user
 	logger.info("User %s wants to know the price of solar." % user.first_name)
 	text = 'On KLO solar costs '
 	text = text + str(parse_klo())
@@ -107,6 +116,20 @@ def dt(bot, update):
 	text2 = text2 + parse_lv()
 	text = text + text2
 	update.message.reply_text(text)
+	"""
+	
+def fuel(bot, update):
+	query = update.callback_query
+	logger.info("User wants to know price of %s." % query.data)
+	text = 'On KLO '+query.data+' costs '
+	text = text + str(parse_klo(query.data))
+	text = text + " UAH" + "\n"
+	text2 = 'On StatOil diesel costs '
+	text2 = text2 + parse_lv()
+	text = text + text2
+	bot.editMessageText(text=text,
+		chat_id=query.message.chat_id,
+		message_id=query.message.message_id)
 
 def news(bot, update):
 	user = update.message.from_user
@@ -203,6 +226,9 @@ def skip_location(bot, update):
 
 def button(bot, update):
 	query = update.callback_query
+	if query.data in ('A95','diesel'):
+		fuel(bot, update)
+		return ConversationHandler.END
 	logger.info("User wants to know the weather in %s." % query.data)
 	w = getWeather(0,0,query.data)
 	text = 'Now in ' + w.get('city') + ' is ' + w.get('status')
@@ -211,12 +237,37 @@ def button(bot, update):
 		chat_id=query.message.chat_id,
 		message_id=query.message.message_id)
 	return ConversationHandler.END
-
+	
+def valera(bot,update):
+	chat = str(update.message.chat.id)
+	user = str(update.message.from_user.id)
+	message = update.message.text.lower()
+	words = re.split('\W+',message, flags=re.U)
+	S1 = set(words)
+	if len(S1.intersection(uksus.HOWS)) > 0:
+		update.message.reply_text(uksus.get_hows())
+	elif len(S1.intersection(uksus.HELLO)) > 0:
+		update.message.reply_text(uksus.get_hello())
+	elif len(S1.intersection(uksus.FUEL)) > 0:
+		dt(bot,update)
+		return 1
+	elif len(S1.intersection(uksus.WEATHER)) > 0:
+		weather(bot,update)
+		return 1
+	else:
+		update.message.reply_text('Только Эдик меня понимает')
+	
 def echo(bot, update):
 	chat = str(update.message.chat.id)
 	user = str(update.message.from_user.id)
 	message = update.message.text
 	time = update.message.date
+	valera_index = message.lower().find('валера')
+	
+	if valera_index > -1:
+		logger.info("Valera founded")
+		valera(bot,update)
+		return 1
 	
 	log_conversation(chat,user,message)
 	delta = datetime.timedelta(minutes=5)
@@ -234,7 +285,7 @@ def echo(bot, update):
 				config.USER_ECHO[user] = 1
 			if config.USER_ECHO[user] > random.choice([2,3]):
 				bot.sendChatAction(action=telegram.ChatAction.TYPING,chat_id=update.message.chat_id)
-				if random.choice([False,False]):
+				if random.choice([True,True]):
 					text = conversation.get_sentence(-1)
 				else:
 					username = uksus.get_name(user)
@@ -260,6 +311,11 @@ def stop(bot, update):
 	update.message.reply_text('Прощайте, друзья...')
 	#pid = os.getpid()
 	#os.kill(pid,1)
+
+def edik(bot, update):
+	user = update.message.from_user
+	logger.warn('User %s send empty command.' % user.first_name)
+	update.message.reply_text('Ты думал что самый хитрожопый '+user.first_name + '?')
 
 
 def main():
@@ -299,6 +355,7 @@ def main():
 	dp.add_handler(CommandHandler("status", status))
 	dp.add_handler(CommandHandler("stop", stop))
 	dp.add_handler(CommandHandler("kiev_radar", kiev_radar))
+	dp.add_handler(CommandHandler("", edik))
 	dp.add_handler(conv_handler)
 	dp.add_handler(conv_handler_n)
 
